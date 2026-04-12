@@ -1,6 +1,5 @@
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect } from "vitest";
 
-// Testeamos la lógica del sistema prompt
 function buildSystemPrompt(fileContent: string): string {
   if (fileContent) {
     return `Sos CodeMate, un asistente experto en programación.
@@ -18,6 +17,14 @@ function buildSystemPrompt(fileContent: string): string {
 function extractToken(authHeader: string | null): string | null {
   if (!authHeader) return null;
   return authHeader.replace("Bearer ", "");
+}
+
+function buildConversationTitle(firstMessage: string): string {
+  return firstMessage.slice(0, 50);
+}
+
+function isFirstMessage(messagesLength: number): boolean {
+  return messagesLength === 1;
 }
 
 describe("buildSystemPrompt", () => {
@@ -42,5 +49,28 @@ describe("extractToken", () => {
 
   it("devuelve null si no hay header", () => {
     expect(extractToken(null)).toBeNull();
+  });
+});
+
+describe("buildConversationTitle", () => {
+  it("usa el mensaje completo si tiene menos de 50 caracteres", () => {
+    expect(buildConversationTitle("Hola CodeMate")).toBe("Hola CodeMate");
+  });
+
+  it("trunca el mensaje a 50 caracteres", () => {
+    const longMessage =
+      "Este es un mensaje muy largo que supera los cincuenta caracteres permitidos";
+    expect(buildConversationTitle(longMessage)).toHaveLength(50);
+  });
+});
+
+describe("isFirstMessage", () => {
+  it("devuelve true si es el primer mensaje", () => {
+    expect(isFirstMessage(1)).toBe(true);
+  });
+
+  it("devuelve false si hay más de un mensaje", () => {
+    expect(isFirstMessage(2)).toBe(false);
+    expect(isFirstMessage(5)).toBe(false);
   });
 });
