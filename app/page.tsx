@@ -378,7 +378,15 @@ export default function Home() {
           <div className="max-w-2xl mx-auto flex flex-col gap-2">
             {file && (
               <div className="flex items-center gap-2 bg-violet-50 border border-violet-100 rounded-xl px-3 py-2">
-                <span className="text-violet-600 text-xs">📄</span>
+                {file.type.startsWith("image/") ? (
+                  <img
+                    src={URL.createObjectURL(file)}
+                    alt="preview"
+                    className="w-8 h-8 rounded object-cover"
+                  />
+                ) : (
+                  <span className="text-violet-600 text-xs">📄</span>
+                )}
                 <span className="text-xs text-violet-600 flex-1 truncate">
                   {file.name}
                 </span>
@@ -418,7 +426,7 @@ export default function Home() {
               <input
                 ref={fileRef}
                 type="file"
-                accept=".js,.ts,.tsx,.jsx,.py,.java,.cpp,.c,.cs,.go,.rs,.html,.css,.json,.md,.txt,.pdf"
+                accept=".js,.ts,.tsx,.jsx,.py,.java,.cpp,.c,.cs,.go,.rs,.html,.css,.json,.md,.txt,.pdf,.png,.jpg,.jpeg,.gif,.webp"
                 className="hidden"
                 onChange={(e) => setFile(e.target.files?.[0] ?? null)}
               />

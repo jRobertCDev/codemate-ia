@@ -27,6 +27,41 @@ function isFirstMessage(messagesLength: number): boolean {
   return messagesLength === 1;
 }
 
+function isImageFile(fileType: string): boolean {
+  return fileType.startsWith("image/");
+}
+
+type TextContent = { type: string; text: string };
+type ImageContent = { type: string; image: string };
+type MessageContent = string | TextContent | ImageContent;
+
+interface ProcessedMessage {
+  role: string;
+  content: MessageContent | MessageContent[];
+}
+
+function buildMessagesWithImage(
+  messages: { role: string; content: string }[],
+  imageBase64: string,
+  imageMimeType: string,
+): ProcessedMessage[] {
+  return messages.map((m, index) => {
+    if (index === messages.length - 1 && m.role === "user") {
+      return {
+        role: "user",
+        content: [
+          { type: "text", text: m.content } as TextContent,
+          {
+            type: "image",
+            image: `data:${imageMimeType};base64,${imageBase64}`,
+          } as ImageContent,
+        ],
+      };
+    }
+    return m;
+  });
+}
+
 describe("buildSystemPrompt", () => {
   it("devuelve el prompt base cuando no hay archivo", () => {
     const prompt = buildSystemPrompt("");
@@ -72,5 +107,63 @@ describe("isFirstMessage", () => {
   it("devuelve false si hay más de un mensaje", () => {
     expect(isFirstMessage(2)).toBe(false);
     expect(isFirstMessage(5)).toBe(false);
+  });
+});
+
+describe("isImageFile", () => {
+  it("devuelve true para tipos de imagen", () => {
+    expect(isImageFile("image/png")).toBe(true);
+    expect(isImageFile("image/jpeg")).toBe(true);
+    expect(isImageFile("image/gif")).toBe(true);
+    expect(isImageFile("image/webp")).toBe(true);
+  });
+
+  it("devuelve false para tipos que no son imagen", () => {
+    expect(isImageFile("text/plain")).toBe(false);
+    expect(isImageFile("application/pdf")).toBe(false);
+    expect(isImageFile("application/json")).toBe(false);
+  });
+});
+
+describe("buildMessagesWithImage", () => {
+  it("agrega la imagen al último mensaje del usuario", () => {
+    const messages = [{ role: "user", content: "¿Qué ves en esta imagen?" }];
+    const result = buildMessagesWithImage(messages, "base64data", "image/png");
+    const lastMessage = result[result.length - 1];
+    const content = lastMessage.content as MessageContent[];
+
+    expect(Array.isArray(content)).toBe(true);
+    expect(content).toHaveLength(2);
+    expect(content[0]).toEqual({
+      type: "text",
+      text: "¿Qué ves en esta imagen?",
+    });
+    expect(content[1]).toEqual({
+      type: "image",
+      image: "data:image/png;base64,base64data",
+    });
+  });
+
+  it("no modifica mensajes anteriores", () => {
+    const messages = [
+      { role: "user", content: "Primer mensaje" },
+      { role: "assistant", content: "Primera respuesta" },
+      { role: "user", content: "¿Qué ves en esta imagen?" },
+    ];
+    const result = buildMessagesWithImage(messages, "base64data", "image/png");
+
+    expect(result[0]).toEqual(messages[0]);
+    expect(result[1]).toEqual(messages[1]);
+    expect(Array.isArray(result[2].content)).toBe(true);
+  });
+
+  it("construye el data URL correctamente", () => {
+    const messages = [{ role: "user", content: "test" }];
+    const result = buildMessagesWithImage(messages, "abc123", "image/jpeg");
+    const lastMessage = result[result.length - 1];
+    const content = lastMessage.content as MessageContent[];
+    const imageContent = content[1] as ImageContent;
+
+    expect(imageContent.image).toBe("data:image/jpeg;base64,abc123");
   });
 });
