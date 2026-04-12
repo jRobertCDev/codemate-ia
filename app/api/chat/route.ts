@@ -6,6 +6,7 @@ import { createClient } from "@supabase/supabase-js";
 export async function POST(req: Request) {
   const formData = await req.formData();
   const messages = JSON.parse(formData.get("messages") as string);
+  const conversationId = formData.get("conversationId") as string;
   const file = formData.get("file") as File | null;
 
   const authHeader = req.headers.get("Authorization");
@@ -24,11 +25,9 @@ export async function POST(req: Request) {
     return Response.json({ error: "No autorizado" }, { status: 401 });
   }
 
-  // Leer el archivo si existe
+  // Leer archivo si existe
   let fileContent = "";
-  if (file) {
-    fileContent = await file.text();
-  }
+  if (file) fileContent = await file.text();
 
   // Guardar mensaje del usuario
   const lastUserMessage = messages[messages.length - 1];
@@ -36,10 +35,16 @@ export async function POST(req: Request) {
     role: lastUserMessage.role,
     content: lastUserMessage.content,
     user_id: user.id,
+    conversation_id: conversationId,
   });
 
-  // Si hay archivo, agregarlo al contexto del modelo
-  const systemWithFile = fileContent
+  // Actualizar updated_at de la conversación
+  await supabase
+    .from("codemate_conversations")
+    .update({ updated_at: new Date().toISOString() })
+    .eq("id", conversationId);
+
+  const systemPrompt = fileContent
     ? `Sos CodeMate, un asistente experto en programación.
       Respondés siempre en español con formato markdown.
       Usás bloques de código con el lenguaje correcto cuando mostrás código.
@@ -56,7 +61,7 @@ export async function POST(req: Request) {
 
   const result = streamText({
     model: openai("gpt-4o-mini"),
-    system: systemWithFile,
+    system: systemPrompt,
     messages,
     tools: {
       getTime: tool({
@@ -77,7 +82,17 @@ export async function POST(req: Request) {
         role: "assistant",
         content: text,
         user_id: user.id,
+        conversation_id: conversationId,
       });
+
+      // Si es el primer mensaje, actualizar el título con el contenido
+      if (messages.length === 1) {
+        const title = lastUserMessage.content.slice(0, 50);
+        await supabase
+          .from("codemate_conversations")
+          .update({ title })
+          .eq("id", conversationId);
+      }
     },
   });
 
