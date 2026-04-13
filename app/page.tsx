@@ -134,13 +134,21 @@ export default function Home() {
     });
 
     if (!response.ok) {
-      const error = await response.json();
+      let errorMessage = "Ocurrió un error. Intentá de nuevo.";
+
+      try {
+        const error = await response.json();
+        errorMessage = error.error ?? errorMessage;
+      } catch {
+        // Vercel puede devolver errores que no son JSON
+        if (response.status === 413) {
+          errorMessage = "El archivo es demasiado grande. El límite es 4.5MB.";
+        }
+      }
+
       setMessages((prev) => [
         ...prev,
-        {
-          role: "assistant",
-          content: `⚠️ ${error.error ?? "Ocurrió un error. Intentá de nuevo."}`,
-        },
+        { role: "assistant", content: `⚠️ ${errorMessage}` },
       ]);
       setIsLoading(false);
       setIsThinking(false);

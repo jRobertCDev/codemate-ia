@@ -33,7 +33,7 @@ export async function POST(req: Request) {
   const file = formData.get("file") as File | null;
 
   // Validar tamaño del archivo — máximo 5MB
-  if (file && file.size > 5 * 1024 * 1024) {
+  if (file && file.size > 4 * 1024 * 1024) {
     return Response.json(
       { error: "El archivo no puede superar los 5MB" },
       { status: 400 },
