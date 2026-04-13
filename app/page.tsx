@@ -133,6 +133,20 @@ export default function Home() {
       body: formData,
     });
 
+    if (!response.ok) {
+      const error = await response.json();
+      setMessages((prev) => [
+        ...prev,
+        {
+          role: "assistant",
+          content: `⚠️ ${error.error ?? "Ocurrió un error. Intentá de nuevo."}`,
+        },
+      ]);
+      setIsLoading(false);
+      setIsThinking(false);
+      return;
+    }
+
     const reader = response.body!.getReader();
     const decoder = new TextDecoder();
     let assistantMessage = "";

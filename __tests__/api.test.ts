@@ -167,3 +167,53 @@ describe("buildMessagesWithImage", () => {
     expect(imageContent.image).toBe("data:image/jpeg;base64,abc123");
   });
 });
+
+function checkRateLimit(
+  userId: string,
+  map: Map<string, { count: number; resetTime: number }>,
+  maxRequests = 20,
+): boolean {
+  const now = Date.now();
+  const windowMs = 60 * 1000;
+  const userLimit = map.get(userId);
+
+  if (!userLimit || now > userLimit.resetTime) {
+    map.set(userId, { count: 1, resetTime: now + windowMs });
+    return true;
+  }
+
+  if (userLimit.count >= maxRequests) return false;
+
+  userLimit.count++;
+  return true;
+}
+
+describe("checkRateLimit", () => {
+  it("permite el primer request", () => {
+    const map = new Map();
+    expect(checkRateLimit("user-1", map)).toBe(true);
+  });
+
+  it("permite hasta el máximo de requests", () => {
+    const map = new Map();
+    for (let i = 0; i < 20; i++) {
+      expect(checkRateLimit("user-1", map)).toBe(true);
+    }
+  });
+
+  it("bloquea cuando se supera el límite", () => {
+    const map = new Map();
+    for (let i = 0; i < 20; i++) {
+      checkRateLimit("user-1", map);
+    }
+    expect(checkRateLimit("user-1", map)).toBe(false);
+  });
+
+  it("no afecta a otros usuarios", () => {
+    const map = new Map();
+    for (let i = 0; i < 20; i++) {
+      checkRateLimit("user-1", map);
+    }
+    expect(checkRateLimit("user-2", map)).toBe(true);
+  });
+});
