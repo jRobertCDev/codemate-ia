@@ -27,7 +27,19 @@ export async function POST(req: Request) {
 
   // Leer archivo si existe
   let fileContent = "";
-  if (file) fileContent = await file.text();
+  let imageBase64 = "";
+  let imageMimeType = "";
+
+  if (file) {
+    const isImage = file.type.startsWith("image/");
+    if (isImage) {
+      const buffer = await file.arrayBuffer();
+      imageBase64 = Buffer.from(buffer).toString("base64");
+      imageMimeType = file.type;
+    } else {
+      fileContent = await file.text();
+    }
+  }
 
   // Guardar mensaje del usuario
   const lastUserMessage = messages[messages.length - 1];
@@ -46,23 +58,41 @@ export async function POST(req: Request) {
 
   const systemPrompt = fileContent
     ? `Sos CodeMate, un asistente experto en programación.
-      Respondés siempre en español con formato markdown.
-      Usás bloques de código con el lenguaje correcto cuando mostrás código.
-      Sos directo, claro y preciso.
-      
-      El usuario subió este archivo:
-      \`\`\`
-      ${fileContent}
-      \`\`\``
+    Respondés siempre en español con formato markdown.
+    Usás bloques de código con el lenguaje correcto cuando mostrás código.
+    
+    El usuario subió este archivo:
+    \`\`\`
+    ${fileContent}
+    \`\`\``
     : `Sos CodeMate, un asistente experto en programación.
-      Respondés siempre en español con formato markdown.
-      Usás bloques de código con el lenguaje correcto cuando mostrás código.
-      Sos directo, claro y preciso.`;
+    Respondés siempre en español con formato markdown.
+    Usás bloques de código con el lenguaje correcto cuando mostrás código.
+    Sos directo, claro y preciso.`;
+
+  // Si hay imagen, la agregamos al último mensaje del usuario
+  const messagesWithImage = imageBase64
+    ? messages.map((m: { role: string; content: string }, index: number) => {
+        if (index === messages.length - 1 && m.role === "user") {
+          return {
+            role: "user",
+            content: [
+              { type: "text", text: m.content },
+              {
+                type: "image",
+                image: `data:${imageMimeType};base64,${imageBase64}`,
+              },
+            ],
+          };
+        }
+        return m;
+      })
+    : messages;
 
   const result = streamText({
-    model: openai("gpt-4o-mini"),
+    model: openai("gpt-4o"),
     system: systemPrompt,
-    messages,
+    messages: messagesWithImage,
     tools: {
       getTime: tool({
         description: "Obtiene la fecha y hora actual",
@@ -85,7 +115,6 @@ export async function POST(req: Request) {
         conversation_id: conversationId,
       });
 
-      // Si es el primer mensaje, actualizar el título con el contenido
       if (messages.length === 1) {
         const title = lastUserMessage.content.slice(0, 50);
         await supabase
