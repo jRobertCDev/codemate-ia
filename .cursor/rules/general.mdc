@@ -1,0 +1,22 @@
+---
+description: Reglas generales para CodeMate
+globs: ["**/*.ts", "**/*.tsx"]
+alwaysApply: true
+---
+
+# Reglas generales
+
+## Estilo de código
+- Usá TypeScript estricto — nunca `any` sin justificación
+- Preferí funciones pequeñas y con un solo propósito
+- Nombrá las variables en inglés, los comentarios en español
+- Usá `const` siempre que sea posible
+
+## Manejo de errores
+- Siempre manejá errores en operaciones async con try/catch
+- Los errores del usuario se muestran en el chat con prefijo ⚠️
+- Los errores del servidor se loggean con console.error
+
+## Imports
+- Usá imports absolutos con `@/` para archivos del proyecto
+- Agrupa imports: externos primero, internos después

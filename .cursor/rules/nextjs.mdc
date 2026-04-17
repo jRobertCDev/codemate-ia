@@ -1,0 +1,50 @@
+---
+description: Reglas para Next.js App Router
+globs: ["app/**/*.ts", "app/**/*.tsx"]
+alwaysApply: false
+---
+
+# Reglas Next.js
+
+## App Router
+- Todos los archivos en `app/` son Server Components por defecto
+- Agregá `'use client'` solo cuando necesitás hooks o eventos
+- Los Route Handlers viven en `app/api/[ruta]/route.ts`
+
+## Route Handlers — estructura obligatoria
+```ts
+export async function POST(req: Request) {
+  const { datos } = await req.json() // o formData()
+  
+  const token = req.headers.get('Authorization')?.replace('Bearer ', '')
+  const supabase = createClient(url, secretKey)
+  const { data: { user } } = await supabase.auth.getUser(token!)
+  
+  if (!user) return Response.json({ error: 'No autorizado' }, { status: 401 })
+  if (!checkRateLimit(user.id)) return Response.json({ error: 'Rate limit' }, { status: 429 })
+  
+  // lógica acá
+  
+  return Response.json({ resultado })
+}
+```
+
+## AI SDK v6 — sintaxis correcta
+```ts
+// Tools — usar inputSchema NO parameters
+tools: {
+  miTool: tool({
+    description: 'descripción',
+    inputSchema: z.object({ param: z.string() }),
+    execute: async ({ param }) => { ... }
+  })
+}
+
+// Stop condition — usar stopWhen NO maxSteps  
+stopWhen: stepCountIs(3)
+```
+
+## Componentes
+- Props tipadas siempre con interface
+- Nombres de componentes en PascalCase
+- Un componente por archivo
