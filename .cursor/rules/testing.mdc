@@ -1,0 +1,35 @@
+---
+description: Reglas para escribir tests
+globs: ["**/*.test.ts", "**/*.test.tsx"]
+alwaysApply: false
+---
+
+# Reglas de testing
+
+## Framework
+- Usá Vitest — NO Jest
+- Usá @testing-library/react para componentes
+- Los tests viven en `__tests__/`
+
+## Estructura
+- Un archivo de test por dominio: `utils`, `components`, `api`
+- Usá `describe` para agrupar y `it` para casos individuales
+- Los nombres de tests en español y descriptivos
+
+## Qué testear
+- Funciones puras: todos los casos posibles
+- Componentes: renderizado y eventos
+- Lógica de negocio: casos felices y casos de error
+
+## Ejemplo de test correcto
+```ts
+describe('nombreDeLaFuncion', () => {
+  it('hace X cuando recibe Y', () => {
+    expect(nombreDeLaFuncion(Y)).toBe(X)
+  })
+
+  it('maneja el caso de error correctamente', () => {
+    expect(nombreDeLaFuncion(null)).toBe(valorEsperado)
+  })
+})
+```
