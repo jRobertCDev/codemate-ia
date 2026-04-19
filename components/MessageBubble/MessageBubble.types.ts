@@ -1,4 +1,5 @@
 export interface MessageBubbleProps {
-  className?: string
-  children?: React.ReactNode
+  role: 'user' | 'assistant'
+  content: string
+  isThinking?: boolean
 }
