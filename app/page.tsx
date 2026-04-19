@@ -28,6 +28,7 @@ export default function Home() {
   const [userEmail, setUserEmail] = useState("");
   const [file, setFile] = useState<File | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
   const router = useRouter();
   const bottomRef = useRef<HTMLDivElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
@@ -186,6 +187,39 @@ export default function Home() {
     }
 
     setIsLoading(false);
+  }
+  async function handleAnalyze() {
+    if (!file || !activeConversationId || isAnalyzing) return
+  
+    setIsAnalyzing(true)
+    setIsThinking(true)
+  
+    const { data: { session } } = await supabase.auth.getSession()
+    const fileContent = await file.text()
+  
+    const userMessage = `Analizá este código y decime qué mejoras puedo hacer`
+    const newMessages = [...messages, { role: 'user' as const, content: userMessage }]
+    setMessages(newMessages)
+    setFile(null)
+    if (fileRef.current) fileRef.current.value = ''
+  
+    const response = await fetch('/api/agent', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${session?.access_token}`,
+      },
+      body: JSON.stringify({
+        message: userMessage,
+        fileContent,
+        conversationId: activeConversationId,
+      }),
+    })
+  
+    const data = await response.json()
+    setIsThinking(false)
+    setMessages([...newMessages, { role: 'assistant', content: data.text }])
+    setIsAnalyzing(false)
   }
 
   async function handleLogout() {
@@ -347,6 +381,16 @@ export default function Home() {
                   ✕
                 </button>
               </div>
+            )}
+            {file && !file.type.startsWith('image/') && (
+              <button
+                type="button"
+                onClick={handleAnalyze}
+                disabled={isAnalyzing || !activeConversationId}
+                className="px-3 py-2 bg-violet-100 text-violet-700 rounded-xl text-xs font-medium hover:bg-violet-200 disabled:opacity-40 transition-colors shrink-0"
+              >
+                {isAnalyzing ? 'Analizando...' : '🔍 Analizar'}
+              </button>
             )}
             <form onSubmit={handleSubmit} className="flex gap-2 items-center">
               <button
